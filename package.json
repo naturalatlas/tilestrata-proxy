@@ -1,6 +1,6 @@
 {
   "name": "tilestrata-proxy",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A TileStrata plugin for proxying remote tiles",
   "author": "Yohan Boniface <hi@yohanboniface.me>",
   "license": "Apache License, v2.0",
