@@ -1,0 +1,10 @@
+language: node_js
+node_js:
+  - "0.10"
+  - "0.12"
+sudo: false
+install:
+  - npm install --fallback-to-build=false
+  - npm install tilestrata
+script:
+  - make test && (make test-ci-coverage || true)

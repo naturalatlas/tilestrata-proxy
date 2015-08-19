@@ -1,0 +1,16 @@
+{
+    "env": {
+        "node": true
+    },
+    "rules": {
+        "quotes": [2, "single"],
+        "no-underscore-dangle": 0,
+        "curly": 0,
+        "consistent-return": 0,
+        "new-cap": 0,
+        "strict": [2, "never"],
+        "indent": [2, 4],
+        "no-shadow": 0,
+        "semi-spacing": 0
+    }
+}
