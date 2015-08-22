@@ -18,6 +18,7 @@ Backend.prototype.initialize = function(callback) {
 Backend.prototype.getTile = function(req, callback) {
 	var self = this;
 	var options = {
+		headers: {'Accept-Encoding': 'gzip, deflate'},
 		uri: self.template(this.uri, req),
 		encoding: null  // we want a buffer, not a string
 	};
