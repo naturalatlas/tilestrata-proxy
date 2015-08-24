@@ -14,7 +14,7 @@ var proxy = require('tilestrata-proxy');
 var strata = tilestrata.createServer();
 
 // route that proxies from an upstream server
-strata.layer('vtiles').route('t.pbf').use(proxy({url: 'http://domain.com/{z}/{x}/{y}.mvt'}));
+strata.layer('vtiles').route('t.pbf').use(proxy({uri: 'http://domain.com/{z}/{x}/{y}.mvt'}));
 
 // rasterize the vector tiles
 strata.layer('mylayer').route('t.png').use(vtileraster({
