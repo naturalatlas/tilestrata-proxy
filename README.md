@@ -1,6 +1,6 @@
 # tilestrata-proxy
 [![NPM version](http://img.shields.io/npm/v/tilestrata-proxy.svg?style=flat)](https://www.npmjs.org/package/tilestrata-proxy)
-[![Build Status](http://img.shields.io/travis/naturalatlas/tilestrata-proxy/master.svg?style=flat)](https://travis-ci.org/naturalatlas/tilestrata-proxy)
+[![Build Status](https://travis-ci.org/naturalatlas/tilestrata-proxy.svg)](https://travis-ci.org/naturalatlas/tilestrata-proxy)
 [![Coverage Status](http://img.shields.io/codecov/c/github/naturalatlas/tilestrata-proxy/master.svg?style=flat)](https://codecov.io/github/naturalatlas/tilestrata-proxy)
 
 A [TileStrata](https://github.com/naturalatlas/tilestrata) plugin for proxying tile requests. Commonly this is needed when you have a beefy vector tile server, and want rendering to happen on cheaper, more-lightweight boxes for scaling purposes.
@@ -11,7 +11,7 @@ A [TileStrata](https://github.com/naturalatlas/tilestrata) plugin for proxying t
 var tilestrata = require('tilestrata');
 var vtileraster = require('tilestrata-vtile-raster');
 var proxy = require('tilestrata-proxy');
-var strata = tilestrata.createServer();
+var strata = tilestrata();
 
 // route that proxies from an upstream server
 strata.layer('vtiles').route('t.pbf').use(proxy({uri: 'http://domain.com/{z}/{x}/{y}.mvt'}));
