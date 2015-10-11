@@ -5,6 +5,10 @@ var tilestrata = require('tilestrata');
 var assert = require('chai').assert;
 
 describe('"tilestrata-proxy"', function() {
+	it('should set "name"', function() {
+		assert.equal(proxy('uri').name, 'proxy');
+	});
+
 	before(function(done) {
 		http.createServer(function(req, res) {
 			assert.equal(req.headers['accept-encoding'], 'gzip, deflate', 'Accept-Encoding header');

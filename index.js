@@ -1,35 +1,58 @@
-var Backend = require('./backend.js');
+var request = require('request');
+
+function template(str, data) {
+	return str.replace(/\{ *([\w_]+) *\}/g, function (str, key) {
+		var value = data[key];
+		if (value === undefined) {
+			throw new Error('No value provided for variable ' + str);
+		} else if (typeof value === 'function') {
+			value = value(data);
+		}
+		return value;
+	});
+}
 
 module.exports = function(options) {
-    var source;
+	if (typeof options === 'string') options = {uri: options};
+	if (!options.uri) throw new Error('Missing proxy "uri" parameter');
+	var uri = options.uri;
 
-    /**
-     * Initializes the backend.
-     *
-     * @param {TileServer} server
-     * @param {function} callback(err, fn)
-     * @return {void}
-     */
-    function initialize(server, callback) {
-        source = new Backend(server, options);
-        source.initialize(callback);
-    }
+	return {
+		name: 'proxy',
+		serve: function(server, req, callback) {
+			var options = {
+				headers: {'Accept-Encoding': 'gzip, deflate'},
+				uri: template(uri, req),
+				encoding: null // we want a buffer, not a string
+			};
+			request(options, function onResponse(err, resp, body) {
+				if (err) return callback(err);
 
-    /**
-     * Renders a tile and returns the result as a buffer (PNG),
-     * plus the headers that should accompany it.
-     *
-     * @param {TileServer} server
-     * @param {TileRequest} req
-     * @param {function} callback(err, buffer, headers)
-     * @return {void}
-     */
-    function serve(server, req, callback) {
-        source.getTile(req, callback);
-    }
+				// don't accept anything but a 200 OK
+				if (resp.statusCode !== 200) {
+					var httpError = new Error('Received non-200 status from upstream (' + resp.statusCode + ')');
+					httpError.statusCode = resp.statusCode;
+					return callback(httpError);
+				}
 
-    return {
-        init: initialize,
-        serve: serve
-    };
+				// decompress body
+				var compression = false;
+				if (resp.headers['content-encoding'] === 'gzip') compression = 'gunzip';
+				else if (resp.headers['content-encoding'] === 'deflate') compression = 'inflate';
+				else if (body && body[0] === 0x1F && body[1] === 0x8B) compression = 'gunzip';
+				else if (body && body[0] === 0x78 && body[1] === 0x9C) compression = 'inflate';
+				if (compression) {
+					zlib[compression](body, function(err, data) {
+						if (err) return callback(err);
+						delete resp.headers['content-encoding'];
+						delete resp.headers['content-length'];
+						callback(null, data, resp.headers);
+					});
+				} else {
+					callback(null, body, resp.headers);
+				}
+			});
+
+		}
+	};
 };
