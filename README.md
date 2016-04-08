@@ -28,6 +28,17 @@ strata.layer('mylayer').route('t.png').use(vtileraster({
 strata.listen(8080);
 ```
 
+The plugin also accepts a `headers` option for specifying request headers:
+
+```js
+proxy({
+	uri: '...',
+	headers: {
+		'User-Agent': 'TileStrata/' + tilestrata.version
+	}
+})
+```
+
 ## Contributing
 
 Before submitting pull requests, please update the [tests](test) and make sure they all pass.
@@ -38,7 +49,7 @@ $ npm test
 
 ## License
 
-Copyright &copy; 2015 [Yohan Boniface](https://github.com/yohanboniface) & [Contributors](https://github.com/naturalatlas/tilestrata-proxy/graphs/contributors)
+Copyright &copy; 2015–2016 [Yohan Boniface](https://github.com/yohanboniface) & [Contributors](https://github.com/naturalatlas/tilestrata-proxy/graphs/contributors)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at: http://www.apache.org/licenses/LICENSE-2.0
 
