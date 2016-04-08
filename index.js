@@ -17,11 +17,18 @@ module.exports = function(options) {
 	if (!options.uri) throw new Error('Missing proxy "uri" parameter');
 	var uri = options.uri;
 
+	var headers = {'Accept-Encoding': 'gzip, deflate'};
+	for (var k in options.headers) {
+		if (options.headers.hasOwnProperty(k)) {
+			headers[k] = options.headers[k];
+		}
+	}
+
 	return {
 		name: 'proxy',
 		serve: function(server, req, callback) {
 			var options = {
-				headers: {'Accept-Encoding': 'gzip, deflate'},
+				headers: headers,
 				uri: template(uri, req),
 				encoding: null // we want a buffer, not a string
 			};
