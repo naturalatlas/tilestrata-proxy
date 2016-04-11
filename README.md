@@ -28,7 +28,7 @@ strata.layer('mylayer').route('t.png').use(vtileraster({
 strata.listen(8080);
 ```
 
-The plugin also accepts a `headers` option for specifying request headers:
+The plugin will automatically decompress gzipped content. If you want to disable this behavior, set `decompress: false`. To specify custom request headers, use the `headers` option:
 
 ```js
 proxy({
