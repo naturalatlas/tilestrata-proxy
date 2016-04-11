@@ -44,6 +44,18 @@ module.exports = function(options) {
 
 				// decompress body
 				var compression = false;
+				var needsDecompression = false;
+
+				var acceptEncoding = req.headers['accept-encoding'];
+				if (acceptEncoding) {
+					acceptedEncodings = acceptEncoding.trim().split(/ *, */);
+					needsDecompression = (acceptedEncodings.indexOf('gzip') == -1 && acceptedEncodings.indexOf('deflate') == -1);
+
+					if (!needsDecompression) {
+						return callback(null, body, resp.headers);
+					}
+				}
+
 				if (resp.headers['content-encoding'] === 'gzip') compression = 'gunzip';
 				else if (resp.headers['content-encoding'] === 'deflate') compression = 'inflate';
 				else if (body && body[0] === 0x1F && body[1] === 0x8B) compression = 'gunzip';
