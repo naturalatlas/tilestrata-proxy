@@ -1,4 +1,5 @@
 var request = require('request');
+var zlib = require('zlib');
 
 function template(str, data) {
 	return str.replace(/\{ *([\w_]+) *\}/g, function (str, key) {
