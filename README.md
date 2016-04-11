@@ -28,7 +28,20 @@ strata.layer('mylayer').route('t.png').use(vtileraster({
 strata.listen(8080);
 ```
 
-The plugin will automatically decompress gzipped content. If you want to disable this behavior, set `decompress: false`. To specify custom request headers, use the `headers` option:
+The plugin will automatically decompress gzipped content by default regardless of the client's `Accept-Encoding` header. This is due to the fact that vector tiles are often used as part of a pipeline and aren't served directly to the client. This isn't always the case though. Decompression behavior is configurable:
+
+```js
+// always decompress gzipped content
+proxy({decompress: 'always'});
+
+// decompress only if the client does not support compression
+proxy({decompress: 'client'});
+
+// never decompress gzipped content
+proxy({decompress: 'never'});
+```
+
+To specify custom request headers, use the `headers` option:
 
 ```js
 proxy({

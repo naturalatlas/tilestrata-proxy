@@ -17,8 +17,8 @@ module.exports = function(options) {
 	if (typeof options === 'string') options = {uri: options};
 	if (!options.uri) throw new Error('Missing proxy "uri" parameter');
 	var uri = options.uri;
-	var decompress = options.decompress !== false;
-	var headers = decompress ? {'Accept-Encoding': 'gzip, deflate'} : {};
+	var decompress = options.decompress || 'always';
+	var headers = decompress === 'always' ? {'Accept-Encoding': 'gzip, deflate'} : {};
 	for (var k in options.headers) {
 		if (options.headers.hasOwnProperty(k)) {
 			headers[k] = options.headers[k];
@@ -28,11 +28,25 @@ module.exports = function(options) {
 	return {
 		name: 'proxy',
 		serve: function(server, req, callback) {
+			// use the client's accept-encoding if we want decompression
+			// behavior to be determined by client capabilities
+			var finalRequestHeaders = headers;
+			if (decompress === 'client') {
+				var finalRequestHeaders = {};
+				for (var k in headers) {
+					if (headers.hasOwnProperty(k)) {
+						finalRequestHeaders[k] = headers[k];
+					}
+				}
+				finalRequestHeaders['Accept-Encoding'] = req.headers['accept-encoding'];
+			}
+
 			var options = {
-				headers: headers,
+				headers: finalRequestHeaders,
 				uri: template(uri, req),
 				encoding: null // we want a buffer, not a string
 			};
+
 			request(options, function onResponse(err, resp, body) {
 				if (err) return callback(err);
 
@@ -43,22 +57,34 @@ module.exports = function(options) {
 					return callback(httpError);
 				}
 
-				// decompress body
-				if (decompress) {
-					var compression = false;
-					if (resp.headers['content-encoding'] === 'gzip') compression = 'gunzip';
-					else if (resp.headers['content-encoding'] === 'deflate') compression = 'inflate';
-					else if (body && body[0] === 0x1F && body[1] === 0x8B) compression = 'gunzip';
-					else if (body && body[0] === 0x78 && body[1] === 0x9C) compression = 'inflate';
-					if (compression) {
-						return zlib[compression](body, function(err, data) {
-							if (err) return callback(err);
-							delete resp.headers['content-encoding'];
-							delete resp.headers['content-length'];
-							callback(null, data, resp.headers);
-						});
+				// detect content encoding
+				var contentEncoding = (resp.headers['content-encoding'] || '').toLowerCase();
+				if (!contentEncoding) {
+					if (body && body[0] === 0x1F && body[1] === 0x8B) contentEncoding = 'gzip';
+					if (body && body[0] === 0x78 && body[1] === 0x9C) contentEncoding = 'deflate';
+				}
+
+				// should we attempt decompression?
+				var shouldDecompress = false;
+				if (contentEncoding === 'gzip' || contentEncoding === 'deflate') {
+					shouldDecompress = decompress === 'always';
+					if (decompress === 'client') {
+						var clientSupportedEncodings = (req.headers['accept-encoding'] || '').trim().toLowerCase().split(/\s*,\s*/);
+						shouldDecompress = clientSupportedEncodings.indexOf(contentEncoding) === -1;
 					}
 				}
+
+				// decompress body
+				if (shouldDecompress) {
+					var fn = contentEncoding === 'gzip' ? 'gunzip' : 'inflate';
+					return zlib[fn](body, function(err, data) {
+						if (err) return callback(err);
+						delete resp.headers['content-encoding'];
+						delete resp.headers['content-length'];
+						callback(null, data, resp.headers);
+					});
+				}
+
 				callback(null, body, resp.headers);
 			});
 
