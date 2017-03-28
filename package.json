@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "description": "A TileStrata plugin for proxying remote tiles",
   "author": "Yohan Boniface <hi@yohanboniface.me>",
-  "license": "Apache License, v2.0",
+  "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
     "test": "mocha -R list",
@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/naturalatlas/tilestrata-proxy",
   "dependencies": {
-    "request": "^2.70.0"
+    "request": "^2.81.0"
   },
   "devDependencies": {
     "chai": "^3.3.0",

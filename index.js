@@ -18,6 +18,8 @@ module.exports = function(options) {
 	if (!options.uri) throw new Error('Missing proxy "uri" parameter');
 	var uri = options.uri;
 	var decompress = options.decompress || 'always';
+	var subdomains = options.subdomains || 'abc';
+	var usesSubdomainReplacement = typeof uri === 'string' && uri.indexOf('{s}') > -1;
 	var headers = decompress === 'always' ? {'Accept-Encoding': 'gzip, deflate'} : {};
 	for (var k in options.headers) {
 		if (options.headers.hasOwnProperty(k)) {
@@ -41,9 +43,16 @@ module.exports = function(options) {
 				finalRequestHeaders['Accept-Encoding'] = req.headers['accept-encoding'];
 			}
 
+			var requestURI = uri;
+			if (usesSubdomainReplacement) {
+	 			var sudomainIndex = Math.abs(req.x + req.y) % subdomains.length;
+				var subdomain = subdomains[sudomainIndex];
+				requestURI = requestURI.replace('{s}', subdomain);
+			}
+
 			var options = {
 				headers: finalRequestHeaders,
-				uri: template(uri, req),
+				uri: template(requestURI, req),
 				encoding: null // we want a buffer, not a string
 			};
 

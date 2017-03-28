@@ -28,13 +28,8 @@ else
 	npm install
 	npm install tilestrata
 	make test
-	sed -i.bak 's/"version": "[^"]*"/"version": "$(version)"/' package.json
-	rm *.bak
-	git add .
-	git commit -a -m "Released $(version)."
-	git tag v$(version)
+	npm version $(version)
+	npm publish
 	git push origin master
 	git push origin --tags
-	npm publish
-	@echo "\033[32mv${version} released\033[0;39m"
 endif

@@ -52,6 +52,14 @@ proxy({
 })
 ```
 
+## Other Options
+
+```js
+// spread requests across different subdomains ala leaflet
+.use(proxy({uri: 'http://{s}.domain.com/{z}/{x}/{y}.png', subdomains: 'abc'}));
+.use(proxy({uri: 'http://{s}.domain.com/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c']}));
+```
+
 ## Contributing
 
 Before submitting pull requests, please update the [tests](test) and make sure they all pass.
@@ -62,7 +70,7 @@ $ npm test
 
 ## License
 
-Copyright &copy; 2015–2016 [Yohan Boniface](https://github.com/yohanboniface) & [Contributors](https://github.com/naturalatlas/tilestrata-proxy/graphs/contributors)
+Copyright &copy; 2015–2017 [Yohan Boniface](https://github.com/yohanboniface) & [Contributors](https://github.com/naturalatlas/tilestrata-proxy/graphs/contributors)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at: http://www.apache.org/licenses/LICENSE-2.0
 
