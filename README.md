@@ -58,6 +58,12 @@ proxy({
 // spread requests across different subdomains ala leaflet
 .use(proxy({uri: 'http://{s}.domain.com/{z}/{x}/{y}.png', subdomains: 'abc'}));
 .use(proxy({uri: 'http://{s}.domain.com/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c']}));
+
+// request arbitrary urls
+.use(proxy({uri: tile => {
+	// note: if you return a falsy value this will cause a 404 Not Found to be returned
+	return 'http://domain.com/' + tile.z + '/' + tile.x + '/' + tile.y + '.png';
+}}));
 ```
 
 ## Contributing

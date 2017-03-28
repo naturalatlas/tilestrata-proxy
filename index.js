@@ -43,16 +43,28 @@ module.exports = function(options) {
 				finalRequestHeaders['Accept-Encoding'] = req.headers['accept-encoding'];
 			}
 
-			var requestURI = uri;
-			if (usesSubdomainReplacement) {
-	 			var sudomainIndex = Math.abs(req.x + req.y) % subdomains.length;
-				var subdomain = subdomains[sudomainIndex];
-				requestURI = requestURI.replace('{s}', subdomain);
+			var requestURI;
+			if (typeof uri === 'function') {
+				requestURI = uri(req);
+			} else {
+				requestURI = uri;
+				if (usesSubdomainReplacement) {
+		 			var sudomainIndex = Math.abs(req.x + req.y) % subdomains.length;
+					var subdomain = subdomains[sudomainIndex];
+					requestURI = requestURI.replace('{s}', subdomain);
+				}
+				requestURI = template(requestURI, req);
+			}
+
+			if (!requestURI) {
+				var error = new Error('No proxy url defined for this tile');
+				error.statusCode = 404;
+				return callback(error);
 			}
 
 			var options = {
 				headers: finalRequestHeaders,
-				uri: template(requestURI, req),
+				uri: requestURI,
 				encoding: null // we want a buffer, not a string
 			};
 

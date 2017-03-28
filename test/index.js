@@ -34,6 +34,9 @@ describe('"tilestrata-proxy"', function() {
 			} else if (req.url === '/subdomain-array-world-3-2-1.txt') {
 				res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
 				res.end('The content');
+			} else if (req.url === '/fn.txt') {
+				res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
+				res.end('The content');
 			} else {
 				throw new Error('Unexpected URL "' + req.url + '"');
 			}
@@ -187,6 +190,48 @@ describe('"tilestrata-proxy"', function() {
 			if (err) throw err;
 			server.serve(req, false, function(status, buffer, headers) {
 				assert.equal(buffer.toString('utf8'), 'The content');
+				done();
+			});
+		});
+	});
+	it('should return remote content (with function)', function(done) {
+		this.timeout(5000);
+
+		var server = new tilestrata.TileServer();
+		var req = tilestrata.TileRequest.parse('/layer/5/6/7/tile.pbf');
+		server.layer('layer').route('tile.pbf').use(proxy({
+			uri: function(tile) {
+				assert.equal(tile.z, 5, 'tile.z');
+				assert.equal(tile.x, 6, 'tile.x');
+				assert.equal(tile.y, 7, 'tile.y');
+				return 'http://localhost:8889/fn.txt';
+			},
+		}));
+
+		server.initialize(function(err) {
+			if (err) throw err;
+			server.serve(req, false, function(status, buffer, headers) {
+				assert.equal(buffer.toString('utf8'), 'The content');
+				done();
+			});
+		});
+	});
+	it('should return 404 Not Found if function returns falsy value', function(done) {
+		this.timeout(5000);
+
+		var server = new tilestrata.TileServer();
+		var req = tilestrata.TileRequest.parse('/layer/5/6/7/tile.pbf');
+		server.layer('layer').route('tile.pbf').use(proxy({
+			uri: function(tile) {
+				return null;
+			},
+		}));
+
+		server.initialize(function(err) {
+			if (err) throw err;
+			server.serve(req, false, function(status, buffer, headers) {
+				assert.equal(status, 404, 'status');
+				assert.equal(buffer.toString('utf8'), 'No proxy url defined for this tile');
 				done();
 			});
 		});
