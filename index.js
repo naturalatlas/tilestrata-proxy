@@ -19,6 +19,10 @@ module.exports = function(options) {
 	var uri = options.uri;
 	var decompress = options.decompress || 'always';
 	var subdomains = options.subdomains || 'abc';
+	var retries = options.retries || 0;
+	var retryDelayBase = typeof options.retryDelayBase === 'number' ? options.retryDelayBase : 500;
+	var retryDelayMax = typeof options.retryDelayMax === 'number' ? options.retryDelayMax : 1000 * 60;
+	var retryDelayMultiple = typeof options.retryDelayMultiple === 'number' ? options.retryDelayMultiple : 2;
 	var usesSubdomainReplacement = typeof uri === 'string' && uri.indexOf('{s}') > -1;
 	var headers = decompress === 'always' ? {'Accept-Encoding': 'gzip, deflate'} : {};
 	for (var k in options.headers) {
@@ -68,47 +72,60 @@ module.exports = function(options) {
 				encoding: null // we want a buffer, not a string
 			};
 
-			request(options, function onResponse(err, resp, body) {
-				if (err) return callback(err);
-
-				// don't accept anything but a 200 OK
-				if (resp.statusCode !== 200) {
-					var httpError = new Error('Received non-200 status from upstream (' + resp.statusCode + ')');
-					httpError.statusCode = resp.statusCode;
-					return callback(httpError);
+			var handleError = function(err, requestNumber) {
+				var attemptsRemaining = retries - (requestNumber - 1);
+				var delayMs = Math.min(retryDelayMax, retryDelayBase * Math.pow(retryDelayMultiple, requestNumber - 1));
+				if (attemptsRemaining > 0) {
+					setTimeout(attemptRequest, delayMs, requestNumber + 1);
+				} else {
+					callback(err);
 				}
+			};
 
-				// detect content encoding
-				var contentEncoding = (resp.headers['content-encoding'] || '').toLowerCase();
-				if (!contentEncoding) {
-					if (body && body[0] === 0x1F && body[1] === 0x8B) contentEncoding = 'gzip';
-					if (body && body[0] === 0x78 && body[1] === 0x9C) contentEncoding = 'deflate';
-				}
+			var attemptRequest = function(requestNumber) {
+				request(options, function onResponse(err, resp, body) {
+					if (err) return handleError(err, requestNumber);
 
-				// should we attempt decompression?
-				var shouldDecompress = false;
-				if (contentEncoding === 'gzip' || contentEncoding === 'deflate') {
-					shouldDecompress = decompress === 'always';
-					if (decompress === 'client') {
-						var clientSupportedEncodings = (req.headers['accept-encoding'] || '').trim().toLowerCase().split(/\s*,\s*/);
-						shouldDecompress = clientSupportedEncodings.indexOf(contentEncoding) === -1;
+					// don't accept anything but a 200 OK
+					if (resp.statusCode !== 200) {
+						var httpError = new Error('Received non-200 status from upstream (' + resp.statusCode + ')');
+						httpError.statusCode = resp.statusCode;
+						return handleError(httpError, requestNumber);
 					}
-				}
 
-				// decompress body
-				if (shouldDecompress) {
-					var fn = contentEncoding === 'gzip' ? 'gunzip' : 'inflate';
-					return zlib[fn](body, function(err, data) {
-						if (err) return callback(err);
-						delete resp.headers['content-encoding'];
-						delete resp.headers['content-length'];
-						callback(null, data, resp.headers);
-					});
-				}
+					// detect content encoding
+					var contentEncoding = (resp.headers['content-encoding'] || '').toLowerCase();
+					if (!contentEncoding) {
+						if (body && body[0] === 0x1F && body[1] === 0x8B) contentEncoding = 'gzip';
+						if (body && body[0] === 0x78 && body[1] === 0x9C) contentEncoding = 'deflate';
+					}
 
-				callback(null, body, resp.headers);
-			});
+					// should we attempt decompression?
+					var shouldDecompress = false;
+					if (contentEncoding === 'gzip' || contentEncoding === 'deflate') {
+						shouldDecompress = decompress === 'always';
+						if (decompress === 'client') {
+							var clientSupportedEncodings = (req.headers['accept-encoding'] || '').trim().toLowerCase().split(/\s*,\s*/);
+							shouldDecompress = clientSupportedEncodings.indexOf(contentEncoding) === -1;
+						}
+					}
 
+					// decompress body
+					if (shouldDecompress) {
+						var fn = contentEncoding === 'gzip' ? 'gunzip' : 'inflate';
+						return zlib[fn](body, function(err, data) {
+							if (err) return callback(err);
+							delete resp.headers['content-encoding'];
+							delete resp.headers['content-length'];
+							callback(null, data, resp.headers);
+						});
+					}
+
+					callback(null, body, resp.headers);
+				});
+			};
+
+			attemptRequest(1);
 		}
 	};
 };

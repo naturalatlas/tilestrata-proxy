@@ -14,15 +14,17 @@ var proxy = require('tilestrata-proxy');
 var strata = tilestrata();
 
 // route that proxies from an upstream server
-strata.layer('vtiles').route('t.pbf').use(proxy({uri: 'http://domain.com/{z}/{x}/{y}.mvt'}));
+strata.layer('vtiles').route('t.pbf').use(proxy({
+	uri: 'http://domain.com/{z}/{x}/{y}.mvt',
+}));
 
 // rasterize the vector tiles
 strata.layer('mylayer').route('t.png').use(vtileraster({
-    xml: '/home/ybon/Code/maps/thankyou/mapnik.xml',
-    tileSize: 256,
-    metatile: 1,
-    bufferSize: 128,
-    tilesource: ['vtiles', 't.pbf']
+		xml: '/home/ybon/Code/maps/thankyou/mapnik.xml',
+		tileSize: 256,
+		metatile: 1,
+		bufferSize: 128,
+		tilesource: ['vtiles', 't.pbf']
 }));
 
 strata.listen(8080);
@@ -32,13 +34,13 @@ The plugin will automatically decompress gzipped content by default regardless o
 
 ```js
 // always decompress gzipped content
-proxy({decompress: 'always'});
+proxy({ decompress: 'always' });
 
 // decompress only if the client does not support compression
-proxy({decompress: 'client'});
+proxy({ decompress: 'client' });
 
 // never decompress gzipped content
-proxy({decompress: 'never'});
+proxy({ decompress: 'never' });
 ```
 
 To specify custom request headers, use the `headers` option:
@@ -52,18 +54,55 @@ proxy({
 })
 ```
 
+## Retries
+
+By default, failed requests will not cause a retry to be attempted. To enable retries, set the `retries` option to the number of retries you want to allow. Retries will be delayed with exponential backoff with sane defaults.
+
+```js
+proxy({ retries: 5 });
+```
+
+To tune exponential backoff, set the following options:
+
+```js
+proxy({
+	// total number of retries
+	retries: 5,
+	// initial delay (ms)
+	retryDelayBase: 500,
+	// exponent base
+	retryDelayMultiple: 1.75,
+	// max delay (ms)
+	retryDelayMax: 60000,
+});
+```
+
+The delay is computed as:
+```
+delay = min(retryDelayMax, retryDelayBase * Math.pow(retryDelayMultiple, retryNumber))
+```
+
 ## Other Options
 
 ```js
 // spread requests across different subdomains ala leaflet
-.use(proxy({uri: 'http://{s}.domain.com/{z}/{x}/{y}.png', subdomains: 'abc'}));
-.use(proxy({uri: 'http://{s}.domain.com/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c']}));
+.use(proxy({
+	uri: 'http://{s}.domain.com/{z}/{x}/{y}.png',
+	subdomains: 'abc',
+}));
+
+.use(proxy({
+	uri: 'http://{s}.domain.com/{z}/{x}/{y}.png',
+	subdomains: ['a', 'b', 'c'],
+}));
 
 // request arbitrary urls
-.use(proxy({uri: tile => {
-	// note: if you return a falsy value this will cause a 404 Not Found to be returned
-	return 'http://domain.com/' + tile.z + '/' + tile.x + '/' + tile.y + '.png';
-}}));
+.use(proxy({
+	uri: tile => {
+		// note: if you return a falsy value this will cause a 404 Not Found to be returned
+		return 'http://domain.com/' + tile.z + '/' + tile.x + '/' + tile.y + '.png';
+	},
+}));
 ```
 
 ## Contributing
@@ -76,7 +115,7 @@ $ npm test
 
 ## License
 
-Copyright &copy; 2015–2017 [Yohan Boniface](https://github.com/yohanboniface) & [Contributors](https://github.com/naturalatlas/tilestrata-proxy/graphs/contributors)
+Copyright &copy; 2015–2021 [Yohan Boniface](https://github.com/yohanboniface), [Natural Atlas](https://github.com/naturalatlas), and [Contributors](https://github.com/naturalatlas/tilestrata-proxy/graphs/contributors)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at: http://www.apache.org/licenses/LICENSE-2.0
 

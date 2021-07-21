@@ -11,6 +11,7 @@ describe('"tilestrata-proxy"', function() {
 	});
 
 	before(function(done) {
+		var failCount = 0;
 		http.createServer(function(req, res) {
 			if (req.url === '/dummy-3-2-1.txt') {
 				res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
@@ -20,7 +21,7 @@ describe('"tilestrata-proxy"', function() {
 					'Content-Type': 'text/plain; charset=utf-8',
 					'Content-Encoding': 'gzip',
 				});
-				var data = new Buffer('The content', 'utf8');
+				var data = Buffer.from('The content', 'utf8');
 				zlib.gzip(data, function(err, data) {
 					if (err) throw err;
 					res.end(data);
@@ -37,6 +38,19 @@ describe('"tilestrata-proxy"', function() {
 			} else if (req.url === '/fn.txt') {
 				res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
 				res.end('The content');
+			} else if (req.url === '/fail-2-times.txt') {
+				if (failCount < 2) {
+					++failCount;
+					res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
+					res.end('Request failed');
+					return;
+				}
+				res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
+				res.end('The content after ' + failCount + ' failures');
+			} else if (req.url === '/fail.txt') {
+				res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
+				res.end('Request failed');
+				return;
 			} else {
 				throw new Error('Unexpected URL "' + req.url + '"');
 			}
@@ -99,7 +113,7 @@ describe('"tilestrata-proxy"', function() {
 			uri: 'http://localhost:8889/compressed.gzip'
 		}));
 
-		var expectedRawData = new Buffer('The content', 'utf8');
+		var expectedRawData = Buffer.from('The content', 'utf8');
 		zlib.gzip(expectedRawData, function(err, expectedGzippedData) {
 			if (err) throw err;
 			server.initialize(function(err) {
@@ -125,7 +139,7 @@ describe('"tilestrata-proxy"', function() {
 			uri: 'http://localhost:8889/compressed.gzip'
 		}));
 
-		var expectedRawData = new Buffer('The content', 'utf8');
+		var expectedRawData = Buffer.from('The content', 'utf8');
 		zlib.gzip(expectedRawData, function(err, expectedGzippedData) {
 			if (err) throw err;
 			server.initialize(function(err) {
@@ -232,6 +246,43 @@ describe('"tilestrata-proxy"', function() {
 			server.serve(req, false, function(status, buffer, headers) {
 				assert.equal(status, 404, 'status');
 				assert.equal(buffer.toString('utf8'), 'No proxy url defined for this tile');
+				done();
+			});
+		});
+	});
+	it('should return error if remote fails', function(done) {
+		this.timeout(5000);
+
+		var server = new tilestrata.TileServer();
+		var req = tilestrata.TileRequest.parse('/layer/3/2/1/tile.pbf');
+		server.layer('layer').route('tile.pbf').use(proxy({
+			uri: 'http://localhost:8889/fail.txt'
+		}));
+
+		server.initialize(function(err) {
+			if (err) throw err;
+			server.serve(req, false, function(status, buffer, headers) {
+				assert.equal(status, 500);
+				assert.equal(buffer.toString('utf8'), 'Received non-200 status from upstream (500)');
+				done();
+			});
+		});
+	});
+	it('should allow retries', function(done) {
+		this.timeout(5000);
+
+		var server = new tilestrata.TileServer();
+		var req = tilestrata.TileRequest.parse('/layer/3/2/1/tile.pbf');
+		server.layer('layer').route('tile.pbf').use(proxy({
+			uri: 'http://localhost:8889/fail-2-times.txt',
+			retries: 3,
+		}));
+
+		server.initialize(function(err) {
+			if (err) throw err;
+			server.serve(req, false, function(status, buffer, headers) {
+				assert.equal(status, 200, 'status');
+				assert.equal(buffer.toString('utf8'), 'The content after 2 failures');
 				done();
 			});
 		});
