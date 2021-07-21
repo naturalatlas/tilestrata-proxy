@@ -28,6 +28,7 @@ else
 	npm install
 	npm install tilestrata
 	make test
+	npm remove tilestrata
 	npm version $(version)
 	npm publish
 	git push origin master
